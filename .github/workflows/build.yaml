@@ -7,6 +7,10 @@ on:
         description: 'Board to build'
         required: true
         default: 'uefi-x86'
+        type: choice
+        options:
+          - uefi-x86
+          - 
       branch:
         description: 'Kernel branch'
         required: true
@@ -16,6 +20,14 @@ on:
         - legacy
         - current
         - edge
+      rootfs:
+        description: 'Root FS'
+        required: true
+        default: 'xfs'
+        type: choice
+        options:
+        - ext4
+        - xfs
 
 jobs:
   build:
@@ -34,19 +46,6 @@ jobs:
           docker-images: true
           swap-storage: true
 
-      - name: Install btrfs support
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y btrfs-progs
-
-      - name: Create fake modprobe
-        run: |
-          sudo tee /usr/local/bin/modprobe <<EOL
-          #!/bin/sh
-          exit 0
-          EOL
-          sudo chmod +x /usr/local/bin/modprobe
-
       - name: Clone Armbian build repository
         run: |
           git clone https://github.com/armbian/build.git
@@ -59,19 +58,22 @@ jobs:
       - name: Build Armbian
         working-directory: ./build
         run: |
-          ./compile.sh BOARD=${{ github.event.inputs.board }} \
+          ./compile.sh \
+            BOARD=${{ github.event.inputs.board }} \
             BRANCH=${{ github.event.inputs.branch }} \
             BUILD_MINIMAL=yes \
             RELEASE=bookworm \
             BOOTSIZE=2048 \
-            ROOTFS_TYPE=btrfs \
+            ROOTFS_TYPE=${{ github.event.inputs.rootfs }} \
             EXTRAWIFI=no \
             NETWORKING_STACK=systemd-networkd \
             DOCKER_ARMBIAN_BASE_IMAGE=ubuntu:noble \
             INSTALL_HEADERS=yes \
             KERNEL_CONFIGURE=prebuilt \
             KERNEL_GIT=shallow \
-            COMPRESS_OUTPUTIMAGE="sha,img,xz"
+            REPOSITORY_INSTALL=kernel \
+            COMPRESS_OUTPUTIMAGE="sha,img,xz" \
+            KERNEL_COMPILER=clang
 
       - name: Set release name
         run: echo "RELEASE_NAME=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
