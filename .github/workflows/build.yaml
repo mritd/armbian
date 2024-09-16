@@ -1,0 +1,68 @@
+name: Armbian Custom Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      board:
+        description: 'Board to build'
+        required: true
+        default: 'uefi-x86'
+      branch:
+        description: 'Kernel branch'
+        required: true
+        default: 'current'
+        type: choice
+        options:
+        - legacy
+        - current
+        - edge
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        uses: descriptinc/free-disk-space@main
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Clone Armbian build repository
+        run: |
+          git clone https://github.com/armbian/build.git
+          cd build
+          git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+
+      - name: Build Armbian
+        working-directory: ./build
+        run: |
+          ./compile.sh BOARD=${{ github.event.inputs.board || 'uefi-x86' }} \
+            BRANCH=${{ github.event.inputs.branch || 'current' }} \
+            BUILD_MINIMAL=yes \
+            RELEASE=bookworm \
+            BOOTSIZE=2048 \
+            ROOTFS_TYPE=btrfs \
+            EXTRAWIFI=no \
+            NETWORKING_STACK=systemd-networkd \
+            DOCKER_ARMBIAN_BASE_IMAGE=ubuntu:noble \
+            INSTALL_HEADERS=yes \
+            KERNEL_CONFIGURE=prebuilt \
+            KERNEL_GIT=shallow \
+            COMPRESS_OUTPUTIMAGE="sha,img,xz"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: armbian-build
+          path: build/output/images/
