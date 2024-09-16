@@ -43,7 +43,7 @@ jobs:
       - name: Build Armbian
         working-directory: ./build
         run: |
-          ./compile.sh BOARD=${{ github.event.inputs.board }} \
+          ./compile.sh docker BOARD=${{ github.event.inputs.board }} \
             BRANCH=${{ github.event.inputs.branch }} \
             BUILD_MINIMAL=yes \
             RELEASE=bookworm \
