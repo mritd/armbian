@@ -43,8 +43,8 @@ jobs:
       - name: Build Armbian
         working-directory: ./build
         run: |
-          ./compile.sh BOARD=${{ github.event.inputs.board || 'uefi-x86' }} \
-            BRANCH=${{ github.event.inputs.branch || 'current' }} \
+          ./compile.sh BOARD=${{ github.event.inputs.board }} \
+            BRANCH=${{ github.event.inputs.branch }} \
             BUILD_MINIMAL=yes \
             RELEASE=bookworm \
             BOOTSIZE=2048 \
@@ -57,8 +57,21 @@ jobs:
             KERNEL_GIT=shallow \
             COMPRESS_OUTPUTIMAGE="sha,img,xz"
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+      - name: Set release name
+        run: echo "RELEASE_NAME=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
         with:
-          name: armbian-build
-          path: build/output/images/
+          tag: ${{ env.RELEASE_NAME }}
+          name: "Armbian Build ${{ env.RELEASE_NAME }}"
+          artifacts: "build/output/images/*"
+          allowUpdates: true
+          removeArtifacts: false
+          replacesArtifacts: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            Armbian custom build for ${{ github.event.inputs.board }}
+            Kernel branch: ${{ github.event.inputs.branch }}
+            Build timestamp: ${{ env.RELEASE_NAME }}
