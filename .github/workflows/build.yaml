@@ -34,6 +34,11 @@ jobs:
           docker-images: true
           swap-storage: true
 
+      - name: Install btrfs support
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y btrfs-progs
+
       - name: Clone Armbian build repository
         run: |
           git clone https://github.com/armbian/build.git
@@ -79,3 +84,4 @@ jobs:
             Kernel branch: ${{ github.event.inputs.branch }}
             Build timestamp: ${{ env.RELEASE_NAME }}
             Armbian build version: ${{ env.LATEST_STABLE_VERSION }}
+            Filesystem: btrfs
