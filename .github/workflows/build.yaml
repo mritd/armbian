@@ -38,12 +38,15 @@ jobs:
         run: |
           git clone https://github.com/armbian/build.git
           cd build
-          git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+          LATEST_STABLE_VERSION=$(git tag -l "v[0-9]*.[0-9]*.[0-9]" | grep -v "-" | sort -V | tail -n1)
+          echo "Latest stable version tag: $LATEST_STABLE_VERSION"
+          git checkout $LATEST_STABLE_VERSION
+          echo "LATEST_STABLE_VERSION=$LATEST_STABLE_VERSION" >> $GITHUB_ENV
 
       - name: Build Armbian
         working-directory: ./build
         run: |
-          ./compile.sh docker BOARD=${{ github.event.inputs.board }} \
+          ./compile.sh BOARD=${{ github.event.inputs.board }} \
             BRANCH=${{ github.event.inputs.branch }} \
             BUILD_MINIMAL=yes \
             RELEASE=bookworm \
@@ -75,3 +78,4 @@ jobs:
             Armbian custom build for ${{ github.event.inputs.board }}
             Kernel branch: ${{ github.event.inputs.branch }}
             Build timestamp: ${{ env.RELEASE_NAME }}
+            Armbian build version: ${{ env.LATEST_STABLE_VERSION }}
